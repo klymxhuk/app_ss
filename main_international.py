@@ -261,7 +261,7 @@ class rkv_api:
                 self.port = conf[3]
                 url = self.srv_adress + 'get_work_list(1).php'
                 try:
-                    res = requests.post(url, data={"login": conf[0], 'pass': conf[1]})
+                    res = requests.post(url, timeout=2.5, data={"login": conf[0], 'pass': conf[1]})
                 except:
                     self.Login = conf[0]
                     self.Password = conf[1]
@@ -315,7 +315,7 @@ class rkv_api:
 
             url =  self.srv_adress  + 'get_work_list(1).php'
             try:
-                res = requests.post(url, data={'login': login,
+                res = requests.post(url, timeout=2.5, data={'login': login,
                                                'pass': password,
                                                'srv_adress': srv_adress
                                                }
@@ -323,9 +323,20 @@ class rkv_api:
             except:
                 print('нет соединения регистрация')
             else:
+
                 self.Login = login
                 self.Password = password
-                self.conf_serv = self.get_conf_serv()
+                self.conf_serv=0
+                self.work_list = 0
+                self.do_work_list = 0
+                self.equipment_list = 0
+                self.object_list = 0
+                self.users_on_object_list = 0
+                self.users_list = 0
+                all_conf_serv = self.get_conf_serv(conf_all=True)
+
+
+                self.conf_serv = all_conf_serv['price_field']
                 self.Flag_connection = True
                 answer = json.loads(res.text)
                 if answer['status'] == 'success':
@@ -333,8 +344,11 @@ class rkv_api:
                     with open('config.txt', 'w', encoding="utf-8") as f:
                         f.write(f"{login},{password},{self.srv_adress},{port},{self.conf_serv},{lang}")
                     self.Flag_config = True
-
                     self.init()
+                    p = requests.get(all_conf_serv['logo_img'])
+                    out = open("logo.png", "wb")
+                    out.write(p.content)
+                    out.close()
                 else:
                     print('error_login')
         else:
@@ -344,7 +358,7 @@ class rkv_api:
             self.Flag_connection = False
             self.Flag_authent = False
 
-    def get_conf_serv(self, off_line=False):
+    def get_conf_serv(self, off_line=False, conf_all=False):
         if self.conf_serv == 0:
             url = self.srv_adress + 'get_conf_serv.php'
             if off_line:
@@ -354,15 +368,23 @@ class rkv_api:
                 return serv_conf[4]
             else:
                 try:
-                    res = requests.post(url, data={'login': self.Login,
+                    res = requests.post(url, timeout=2.5, data={'login': self.Login,
                                                    'pass': self.Password})
                 except:
                     with open('config.txt', 'r', encoding="utf-8") as f:
                         serv_conf = json.loads(f.read())
-                    return serv_conf[4]
+                    if conf_all:
+                        return {'price_field':'', 'logo_img':''}
+                    else:
+                        print('111111111')
+                        return serv_conf[4]
                 else:
                     serv_conf = json.loads(res.text)
-                    return serv_conf['price_field']
+                    if conf_all:
+                        return serv_conf
+                    else:
+                        print('111111111')
+                        return serv_conf['price_field']
         else:
             return self.conf_serv
 
@@ -375,7 +397,7 @@ class rkv_api:
                     return json.loads(f.read())
             else:
                 try:
-                    res = requests.post(url, data={'find_word': find_word,
+                    res = requests.post(url, timeout=3, data={'find_word': find_word,
                                                    'login': self.Login,
                                                    'pass': self.Password
                                                    })
@@ -392,7 +414,7 @@ class rkv_api:
     def add_new_do_work(self, array_id_for_new, array_text_for_new):
         url = self.srv_adress + 'add_new.php'
         try:
-            res = requests.post(url, data={'223': array_id_for_new['223'],
+            res = requests.post(url, timeout=3, data={'223': array_id_for_new['223'],
                                            '239': array_id_for_new['239'],
                                            '224': array_id_for_new['224'],
                                            '237': array_id_for_new['237'],
@@ -412,7 +434,7 @@ class rkv_api:
         json_array_for_update = json.dumps(array_for_update)
         url = self.srv_adress + 'update_item.php'
         try:
-            res = requests.post(url, data={'id': id_update_item,
+            res = requests.post(url, timeout=3, data={'id': id_update_item,
                                            'data': json_array_for_update,
                                            'login': self.Login,
                                            'pass': self.Password
@@ -426,7 +448,7 @@ class rkv_api:
     def remove_work_do(self, id_remove_item):
         url = self.srv_adress + 'remove_item.php'
         try:
-            res = requests.post(url, data={'id': id_remove_item,
+            res = requests.post(url, timeout=2.5, data={'id': id_remove_item,
                                            'login': self.Login,
                                            'pass': self.Password
                                            })
@@ -448,7 +470,7 @@ class rkv_api:
                     return json.loads(f.read())
             else:
                 try:
-                    res = requests.post(url, data={'object': object,
+                    res = requests.post(url, timeout=2.5, data={'object': object,
                                                    'date_start': date_start,
                                                    'date_end': date_end,
                                                    'login': self.Login,
@@ -456,6 +478,8 @@ class rkv_api:
                                                    'user_id': self.user_id
                                                    })
                 except:
+                    self.app_instance.info_msg.text = self.app_instance.text_for_app['msg_no_connect']
+                    self.app_instance.info_msg.open()
                     with open('do_work_list.txt', 'r', encoding="utf-8") as f:
                         return json.loads(f.read())
                 else:
@@ -474,7 +498,7 @@ class rkv_api:
                     return json.loads(f.read())
             else:
                 try:
-                    res = requests.post(url, data={
+                    res = requests.post(url, timeout=2.5, data={
                         'login': self.Login,
                         'pass': self.Password
                     })
@@ -496,7 +520,7 @@ class rkv_api:
                     return json.loads(f.read())
             else:
                 try:
-                    res = requests.post(url, data={'find_word': ''
+                    res = requests.post(url, timeout=2.5, data={'find_word': ''
                                                    })
                 except:
                     with open('complex_list.txt', 'r', encoding="utf-8") as f:
@@ -516,7 +540,7 @@ class rkv_api:
                     return json.loads(f.read())
             else:
                 try:
-                    res = requests.post(url, data={'login': self.Login,
+                    res = requests.post(url, timeout=2.5, data={'login': self.Login,
                                                    'pass': self.Password
                                                    })
                 except:
@@ -542,7 +566,7 @@ class rkv_api:
             return users_list
         else:
             try:
-                res = requests.post(url, data={
+                res = requests.post(url, timeout=2.5, data={
                     'login': self.Login,
                     'pass': self.Password
                 })
@@ -791,10 +815,7 @@ class MyApp(MDApp):
                     snackbar_x="10dp",
                     snackbar_y="10dp",
                     size_hint_x=(Window.width - (10 * 2)) / Window.width)
-        #p = requests.get("https://sekret-servis.com.ua/wp-content/uploads/2021/09/logotip-sekret-servis-osnovnoj.png")
-        #out = open("logo.png", "wb")
-        #out.write(p.content)
-        #out.close()
+
         self.lang = 'UA'
         try:
             f = open('config.txt', 'r')
@@ -877,6 +898,8 @@ class MyApp(MDApp):
                 self.root.ids.toolbar.title = self.rkv.count_many() + "грн."
                 self.info_msg.text = self.text_for_app['msg_you_login']
                 self.info_msg.open()
+                self.root.ids.nav_drawer.children[0].ids.logo.source = 'logo.png'
+                self.root.ids.nav_drawer.children[0].ids.logo.reload()
                 self.root.ids.nav_drawer.set_state("close")
                 self.root.ids.screen_manager.current = "scr 1"
                 self.root.ids.toolbar.right_action_items = [
@@ -1797,6 +1820,7 @@ class MyApp(MDApp):
                 #text: "СЕКРЕТ СЕРВИС"
                 #bg_color: 0,0.2,0.25,0.6
                 Image:
+                    id: logo
                     pos_hint: {"center_x": 0.5,"top": 1}
                     source: 'logo.png'
                     size_hint: 0.8,0.8
