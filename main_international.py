@@ -266,10 +266,10 @@ class rkv_api:
                     self.Login = conf[0]
                     self.Password = conf[1]
                     self.conf_serv = self.get_conf_serv(off_line=True)
+                    self.users_list = self.get_users_list(off_line=True)
                     self.work_list = self.get_work_list(off_line=True)
                     self.do_work_list = self.get_do_work_list(self.date_start, self.date_end, off_line=True)
                     self.object_list = self.get_object(off_line=True)
-                    self.users_list = self.get_users_list(off_line=True)
                     self.equipment_list = self.get_equipment_list(off_line=True)
                     self.complex_list = self.get_complex_list(off_line=True)
                     # self.users_on_object_list = self.get_users_on_object('41')
@@ -281,11 +281,11 @@ class rkv_api:
                         self.Flag_authent = True
                         self.Login = conf[0]
                         self.Password = conf[1]
+                        self.users_list = self.get_users_list()
                         self.conf_serv = self.get_conf_serv()
                         self.work_list = self.get_work_list()
                         self.do_work_list = self.get_do_work_list()
                         self.object_list = self.get_object()
-                        self.users_list = self.get_users_list()
                         self.equipment_list = self.get_equipment_list()
                         self.complex_list = self.get_complex_list()
                         return ('ok')
@@ -311,9 +311,9 @@ class rkv_api:
 
     def login(self, login=0, password=0, srv_adress=0, port=38654, lang='UA', Log_in=True):
         if Log_in:
-            srv_adress_string = 'http://'+srv_adress+':'+ port + '/'
+            self.srv_adress = 'http://'+srv_adress+':'+ port + '/'
 
-            url = srv_adress_string + 'get_work_list(1).php'
+            url =  self.srv_adress  + 'get_work_list(1).php'
             try:
                 res = requests.post(url, data={'login': login,
                                                'pass': password,
@@ -323,13 +323,17 @@ class rkv_api:
             except:
                 print('нет соединения регистрация')
             else:
+                self.Login = login
+                self.Password = password
+                self.conf_serv = self.get_conf_serv()
                 self.Flag_connection = True
                 answer = json.loads(res.text)
                 if answer['status'] == 'success':
                     self.Flag_authent = True
                     with open('config.txt', 'w', encoding="utf-8") as f:
-                        f.write(f"{login},{password},{srv_adress_string},{port},{self.conf_serv},{lang}")
+                        f.write(f"{login},{password},{self.srv_adress},{port},{self.conf_serv},{lang}")
                     self.Flag_config = True
+
                     self.init()
                 else:
                     print('error_login')
@@ -355,12 +359,9 @@ class rkv_api:
                 except:
                     with open('config.txt', 'r', encoding="utf-8") as f:
                         serv_conf = json.loads(f.read())
-                    print(serv_conf)
                     return serv_conf[4]
                 else:
-                    print(res.text)
                     serv_conf = json.loads(res.text)
-                    print(serv_conf)
                     return serv_conf['price_field']
         else:
             return self.conf_serv
