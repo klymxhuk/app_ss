@@ -1196,6 +1196,8 @@ class MyApp(MDApp):
                     button = self.root.ids.new.children[0].children[-2].children[-1].add_widget(
                         Worker_item(name_worker=self.rkv.user_secondname, id_worker=self.rkv.user_id)
                     )
+                    self.root.ids.scroll_do_work.scroll_to(self.root.ids.new, padding=10,
+                                                           animate=True)
                     #self.dropdown = CustomDropDown()
             else:
                 self.root.ids.new.padding = 15
