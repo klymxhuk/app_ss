@@ -245,7 +245,6 @@ class rkv_api:
         self.new_do_work = 0
         self.many_for_pay = ''
         self.app_type = ''
-        self.conf_serv = 0
 
     def init(self):
         try:
@@ -261,15 +260,14 @@ class rkv_api:
                 self.port = conf[3]
                 url = self.srv_adress + 'get_work_list(1).php'
                 try:
-                    res = requests.post(url, timeout=2.5, data={"login": conf[0], 'pass': conf[1]})
+                    res = requests.post(url, data={"login": conf[0], 'pass': conf[1]})
                 except:
                     self.Login = conf[0]
                     self.Password = conf[1]
-                    self.conf_serv = self.get_conf_serv(off_line=True)
-                    self.users_list = self.get_users_list(off_line=True)
                     self.work_list = self.get_work_list(off_line=True)
                     self.do_work_list = self.get_do_work_list(self.date_start, self.date_end, off_line=True)
                     self.object_list = self.get_object(off_line=True)
+                    self.users_list = self.get_users_list(off_line=True)
                     self.equipment_list = self.get_equipment_list(off_line=True)
                     self.complex_list = self.get_complex_list(off_line=True)
                     # self.users_on_object_list = self.get_users_on_object('41')
@@ -281,11 +279,10 @@ class rkv_api:
                         self.Flag_authent = True
                         self.Login = conf[0]
                         self.Password = conf[1]
-                        self.users_list = self.get_users_list()
-                        self.conf_serv = self.get_conf_serv()
                         self.work_list = self.get_work_list()
                         self.do_work_list = self.get_do_work_list()
                         self.object_list = self.get_object()
+                        self.users_list = self.get_users_list()
                         self.equipment_list = self.get_equipment_list()
                         self.complex_list = self.get_complex_list()
                         return ('ok')
@@ -304,18 +301,18 @@ class rkv_api:
                 do_work_list = get_do_work_list
             for work in do_work_list['data']:
                 if work['254'] == 'да':
-                    self.many_for_pay += float(work[self.conf_serv])*float(work['224'])
+                    self.many_for_pay += float(work['238'])*float(work['224'])
             return str(self.many_for_pay)
         else:
             return '0'
 
     def login(self, login=0, password=0, srv_adress=0, port=38654, lang='UA', Log_in=True):
         if Log_in:
-            self.srv_adress = 'http://'+srv_adress+':'+ port + '/'
+            srv_adress_string = 'http://'+srv_adress+':'+ port + '/'
 
-            url =  self.srv_adress  + 'get_work_list(1).php'
+            url = srv_adress_string + 'get_work_list(1).php'
             try:
-                res = requests.post(url, timeout=2.5, data={'login': login,
+                res = requests.post(url, data={'login': login,
                                                'pass': password,
                                                'srv_adress': srv_adress
                                                }
@@ -323,32 +320,14 @@ class rkv_api:
             except:
                 print('нет соединения регистрация')
             else:
-
-                self.Login = login
-                self.Password = password
-                self.conf_serv=0
-                self.work_list = 0
-                self.do_work_list = 0
-                self.equipment_list = 0
-                self.object_list = 0
-                self.users_on_object_list = 0
-                self.users_list = 0
-                all_conf_serv = self.get_conf_serv(conf_all=True)
-
-
-                self.conf_serv = all_conf_serv['price_field']
                 self.Flag_connection = True
                 answer = json.loads(res.text)
                 if answer['status'] == 'success':
                     self.Flag_authent = True
                     with open('config.txt', 'w', encoding="utf-8") as f:
-                        f.write(f"{login},{password},{self.srv_adress},{port},{self.conf_serv},{lang}")
+                        f.write(f"{login},{password},{srv_adress_string},{port},{lang}")
                     self.Flag_config = True
                     self.init()
-                    p = requests.get(all_conf_serv['logo_img'])
-                    out = open("logo.png", "wb")
-                    out.write(p.content)
-                    out.close()
                 else:
                     print('error_login')
         else:
@@ -358,37 +337,6 @@ class rkv_api:
             self.Flag_connection = False
             self.Flag_authent = False
 
-    def get_conf_serv(self, off_line=False, conf_all=False):
-        if self.conf_serv == 0:
-            url = self.srv_adress + 'get_conf_serv.php'
-            if off_line:
-                with open('config.txt', 'r', encoding="utf-8") as f:
-                    conf_str= f.read()
-                serv_conf = conf_str.split(',')
-                return serv_conf[4]
-            else:
-                try:
-                    res = requests.post(url, timeout=2.5, data={'login': self.Login,
-                                                   'pass': self.Password})
-                except:
-                    with open('config.txt', 'r', encoding="utf-8") as f:
-                        serv_conf = json.loads(f.read())
-                    if conf_all:
-                        return {'price_field':'', 'logo_img':''}
-                    else:
-                        print('111111111')
-                        return serv_conf[4]
-                else:
-                    serv_conf = json.loads(res.text)
-                    if conf_all:
-                        return serv_conf
-                    else:
-                        print('111111111')
-                        return serv_conf['price_field']
-        else:
-            return self.conf_serv
-
-
     def get_work_list(self, find_word='', off_line=False):
         if self.work_list == 0:
             url = self.srv_adress + 'get_work_list.php'
@@ -397,7 +345,7 @@ class rkv_api:
                     return json.loads(f.read())
             else:
                 try:
-                    res = requests.post(url, timeout=3, data={'find_word': find_word,
+                    res = requests.post(url, data={'find_word': find_word,
                                                    'login': self.Login,
                                                    'pass': self.Password
                                                    })
@@ -414,7 +362,7 @@ class rkv_api:
     def add_new_do_work(self, array_id_for_new, array_text_for_new):
         url = self.srv_adress + 'add_new.php'
         try:
-            res = requests.post(url, timeout=3, data={'223': array_id_for_new['223'],
+            res = requests.post(url, data={'223': array_id_for_new['223'],
                                            '239': array_id_for_new['239'],
                                            '224': array_id_for_new['224'],
                                            '237': array_id_for_new['237'],
@@ -434,7 +382,7 @@ class rkv_api:
         json_array_for_update = json.dumps(array_for_update)
         url = self.srv_adress + 'update_item.php'
         try:
-            res = requests.post(url, timeout=3, data={'id': id_update_item,
+            res = requests.post(url, data={'id': id_update_item,
                                            'data': json_array_for_update,
                                            'login': self.Login,
                                            'pass': self.Password
@@ -448,7 +396,7 @@ class rkv_api:
     def remove_work_do(self, id_remove_item):
         url = self.srv_adress + 'remove_item.php'
         try:
-            res = requests.post(url, timeout=2.5, data={'id': id_remove_item,
+            res = requests.post(url, data={'id': id_remove_item,
                                            'login': self.Login,
                                            'pass': self.Password
                                            })
@@ -470,16 +418,14 @@ class rkv_api:
                     return json.loads(f.read())
             else:
                 try:
-                    res = requests.post(url, timeout=2.5, data={'object': object,
+                    res = requests.post(url, data={'object': object,
                                                    'date_start': date_start,
                                                    'date_end': date_end,
                                                    'login': self.Login,
-                                                   'pass': self.Password,
-                                                   'user_id': self.user_id
+                                                   'pass': self.Password
+
                                                    })
                 except:
-                    self.app_instance.info_msg.text = self.app_instance.text_for_app['msg_no_connect']
-                    self.app_instance.info_msg.open()
                     with open('do_work_list.txt', 'r', encoding="utf-8") as f:
                         return json.loads(f.read())
                 else:
@@ -498,7 +444,7 @@ class rkv_api:
                     return json.loads(f.read())
             else:
                 try:
-                    res = requests.post(url, timeout=2.5, data={
+                    res = requests.post(url, data={
                         'login': self.Login,
                         'pass': self.Password
                     })
@@ -520,7 +466,7 @@ class rkv_api:
                     return json.loads(f.read())
             else:
                 try:
-                    res = requests.post(url, timeout=2.5, data={'find_word': ''
+                    res = requests.post(url, data={'find_word': ''
                                                    })
                 except:
                     with open('complex_list.txt', 'r', encoding="utf-8") as f:
@@ -540,7 +486,7 @@ class rkv_api:
                     return json.loads(f.read())
             else:
                 try:
-                    res = requests.post(url, timeout=2.5, data={'login': self.Login,
+                    res = requests.post(url, data={'login': self.Login,
                                                    'pass': self.Password
                                                    })
                 except:
@@ -566,7 +512,7 @@ class rkv_api:
             return users_list
         else:
             try:
-                res = requests.post(url, timeout=2.5, data={
+                res = requests.post(url, data={
                     'login': self.Login,
                     'pass': self.Password
                 })
@@ -815,7 +761,10 @@ class MyApp(MDApp):
                     snackbar_x="10dp",
                     snackbar_y="10dp",
                     size_hint_x=(Window.width - (10 * 2)) / Window.width)
-
+        #p = requests.get("https://sekret-servis.com.ua/wp-content/uploads/2021/09/logotip-sekret-servis-osnovnoj.png")
+        #out = open("logo.png", "wb")
+        #out.write(p.content)
+        #out.close()
         self.lang = 'UA'
         try:
             f = open('config.txt', 'r')
@@ -825,14 +774,18 @@ class MyApp(MDApp):
             conf_str = f.read()
             if conf_str != '':
                 conf = conf_str.split(',')
-                self.lang = conf[5]
+                self.lang = conf[4]
             f.close()
         self.text_for_app = text_for_app[self.lang]
 # method for chaing position scroll view on first item, when window was restore
     def win(self,*args):
         var = len(self.root.ids.md_list.children)
         self.root.ids.scroll_do_work.do_scroll_y = True
-        self.root.ids.scroll_do_work.scroll_to(self.root.ids.md_list.children[var-1], padding=10, animate=False)
+        try:
+            self.root.ids.scroll_do_work.scroll_to(self.root.ids.md_list.children[var-1], padding=10, animate=False)
+        except:
+            pass
+
 
     def Android_back_click(self, window, key, *largs):
         if key == 27:
@@ -898,8 +851,6 @@ class MyApp(MDApp):
                 self.root.ids.toolbar.title = self.rkv.count_many() + "грн."
                 self.info_msg.text = self.text_for_app['msg_you_login']
                 self.info_msg.open()
-                self.root.ids.nav_drawer.children[0].ids.logo.source = 'logo.png'
-                self.root.ids.nav_drawer.children[0].ids.logo.reload()
                 self.root.ids.nav_drawer.set_state("close")
                 self.root.ids.screen_manager.current = "scr 1"
                 self.root.ids.toolbar.right_action_items = [
@@ -929,11 +880,7 @@ class MyApp(MDApp):
         now_date_end = f'{now.strftime("%Y-%m-")}{calendar.monthrange(now.year, now.month)[1]}'
         last_mounth = int(date_now[5:7])-1
         befor_m_date_start = f'{now.strftime("%Y-")}{last_mounth:0{2}}-01'
-        if (now.month-1)!=0:
-            befor_m_date_end = f'{now.strftime("%Y-")}{last_mounth:0{2}}-{calendar.monthrange(now.year, now.month-1)[1]}'
-        else:
-            befor_m_date_end = f'{int(now.strftime("%Y"))-1}-{12-(now.month-1)}-{calendar.monthrange(now.year-1, 12-(now.month-1))[1]}'
-            print(befor_m_date_end)
+        befor_m_date_end = f'{now.strftime("%Y-")}{last_mounth:0{2}}-{calendar.monthrange(now.year, now.month-1)[1]}'
         if self.rkv.Flag_config:
             if self.rkv.Flag_connection:
                 self.root.ids.comon_many_befor.text = f"{self.text_for_app['title_count_for']} {befor_m_date_end[5:7]}.{befor_m_date_end[0:4]} - {self.rkv.count_many(self.rkv.get_do_work_list(date_start=befor_m_date_start, date_end=befor_m_date_end))} {self.text_for_app['currency']}."
@@ -973,7 +920,7 @@ class MyApp(MDApp):
                         self.count += 1
                         work_do_item = self.item_for_groupe_bilder[key_object].pop(0)
                         if work_do_item['254'] == 'да' and self.rkv.app_type != '':
-                            salary = f" по {work_do_item[self.rkv.conf_serv][0:-1]} = {float(work_do_item[self.rkv.conf_serv])*float(work_do_item['224'])}"
+                            salary = f" по {work_do_item['238'][0:-1]} = {float(work_do_item['238'])*float(work_do_item['224'])}"
                         else:
                             salary = ''
                         unit_name = list(filter(lambda x: x['id'] == work_do_item['226'],
@@ -1139,7 +1086,7 @@ class MyApp(MDApp):
                 unit_name = list(filter(lambda x: x['id'] == work_do_item['226'],
                                           self.rkv.work_list['data'])).pop()
                 if work_do_item['254'] == 'да' and self.rkv.app_type != '':
-                    salary = f" по {work_do_item[self.rkv.conf_serv][0:-1]} = {float(work_do_item[self.rkv.conf_serv]) * float(work_do_item['224'])}"
+                    salary = f" по {work_do_item['238'][0:-1]} = {float(work_do_item['238']) * float(work_do_item['224'])}"
                 else:
                     salary = ''
                 end = Time.time()
@@ -1196,8 +1143,6 @@ class MyApp(MDApp):
                     button = self.root.ids.new.children[0].children[-2].children[-1].add_widget(
                         Worker_item(name_worker=self.rkv.user_secondname, id_worker=self.rkv.user_id)
                     )
-                    self.root.ids.scroll_do_work.scroll_to(self.root.ids.new, padding=10,
-                                                           animate=True)
                     #self.dropdown = CustomDropDown()
             else:
                 self.root.ids.new.padding = 15
@@ -1377,7 +1322,7 @@ class MyApp(MDApp):
             FrontBox.clear_widgets()
             work_do_item = FrontBox.work_do
             if work_do_item.get('254') == 'да':
-                salary = f" по {work_do_item[self.rkv.conf_serv][0:-1]} = {float(work_do_item[self.rkv.conf_serv]) * float(work_do_item['224'])}"
+                salary = f" по {work_do_item['238'][0:-1]} = {float(work_do_item['238']) * float(work_do_item['224'])}"
             else:
                 salary = ''
             FrontBox.add_widget(
@@ -1530,7 +1475,6 @@ class MyApp(MDApp):
                 self.item_for_builder.append({"name_item": worker['8'], 'id_item': worker['id']})
             self.dropdown.data = self.item_for_builder
             self.dropdown.open(instance)
-
 
     def click_drop_worker(self, text, id_item):
         pass
@@ -1709,7 +1653,7 @@ class MyApp(MDApp):
             self.root.ids.info_box.name = work_type['id']
             self.root.ids.inch.text = f"{self.text_for_app['title_unit_name']} - {instance.unit_name}"
             if self.rkv.app_type != '':
-                self.root.ids.coast_work.text = f"{self.text_for_app['title_price']} - {instance.work_do[self.rkv.conf_serv]} {self.text_for_app['currency']}."
+                self.root.ids.coast_work.text = f"{self.text_for_app['title_price']} - {instance.work_do['238']} {self.text_for_app['currency']}."
             else:
                 self.root.ids.coast_work.text = f"{self.text_for_app['title_price']} - {work_type['220']} {self.text_for_app['currency']}."
             self.root.ids.toolbar.right_action_items = [["arrow-u-left-bottom-bold", lambda x: self.button_back()]]
@@ -1735,7 +1679,7 @@ class MyApp(MDApp):
         self.root.ids.toolbar.right_action_items = [
             ["home-city-outline", lambda x: self.group_by_object(self.root.ids.toolbar)],
             ["calendar", lambda x: self.show_calendar()], ["plus", lambda x: self.add_work()]]
-        self.root.ids.toolbar.title = f"{self.rkv.count_many()} {self.text_for_app['title_done_work']}." if self.rkv.app_type != '' else self.text_for_app['title_done_work']
+        self.root.ids.toolbar.title = f"{self.rkv.count_many()} {self.text_for_app['currency']}." if self.rkv.app_type != '' else self.text_for_app['title_done_work']
 
     def button_back_from_WL(self):
         self.prev_screen = 'src 1'
@@ -1822,7 +1766,6 @@ class MyApp(MDApp):
                 #text: "СЕКРЕТ СЕРВИС"
                 #bg_color: 0,0.2,0.25,0.6
                 Image:
-                    id: logo
                     pos_hint: {"center_x": 0.5,"top": 1}
                     source: 'logo.png'
                     size_hint: 0.8,0.8
