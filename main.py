@@ -1587,7 +1587,7 @@ class MyApp(MDApp):
         if (scroll.children[0].size[1] * scroll.scroll_y) < -300:
             self.Flag_Update_List = True
         elif scroll.scroll_y > 0.9:
-            if (scroll.children[0].size[1] / scroll.scroll_y) < scroll.children[0].size[1] - 50:
+            if (scroll.children[0].size[1] / scroll.scroll_y) < scroll.children[0].size[1] - 700:
                 self.root.ids.spiner.pos = (self.root.ids.scr1.size[0] / 2, self.root.ids.scr1.size[1] - (
                             (scroll.children[0].size[1] * scroll.scroll_y) - scroll.children[0].size[1]) / 4)
                 self.root.ids.spiner.active = True
